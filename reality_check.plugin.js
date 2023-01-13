@@ -2,11 +2,11 @@
  * @name reality_check
  * @author jakubrb
  * @description real bad plugin
- * @version 1.33.7
+ * @version 1.33.8
  */
 
 const plugin_name = "reality_check";
-const plugin_version = "1.33.7";
+const plugin_version = "1.33.8";
 const save_key = "saved_state";
 
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -72,7 +72,49 @@ let last_state;
 let interval_active = 0;
 let last_state_save = Date.now();
 
-let state = {}
+
+class State {
+    constructor() {
+        this._state = this._load();
+    }
+
+    _load() {
+        let state = BdApi.Data.load(plugin_name, save_key)
+        if (state === undefined || state.version === undefined || major_version(state.version) !== major_version(plugin_version)) {
+            state = {
+                version: plugin_version,
+                saved_ms: 0,
+                last_hour_notice: 0
+            }
+            BdApi.Data.save(plugin_name, save_key, state)
+        }
+        return state;
+    }
+
+    _save() {
+        BdApi.Data.save(plugin_name, save_key, this._state)
+    }
+
+    get saved_ms() {
+        return this._state.saved_ms;
+    }
+
+    set saved_ms(value) {
+        this._state.saved_ms = value;
+        this._save();
+    }
+
+    get last_hour_notice() {
+        return this._state.last_hour_notice;
+    }
+
+    set last_hour_notice(value) {
+        this._state.last_hour_notice = value;
+        this._save();
+    }
+}
+
+let state = null;
 
 function number_to_fixed(number, digits) {
     if (number < 0) {
@@ -155,7 +197,6 @@ function time_format(time) {
     if (hours !== state.last_hour_notice) {
         state.last_hour_notice = hours;
         state.last_hour_notice = hours;
-        BdApi.Data.save(plugin_name, save_key, state)
         show_notice(hours);
     }
 
@@ -175,7 +216,6 @@ function print_time() {
     if (last_state_save + (1000 * 60) < Date.now()) {
         last_state_save = Date.now();
         state.saved_ms = current_time_in_ms;
-        BdApi.Data.save(plugin_name, save_key, state)
     }
 }
 
@@ -199,15 +239,7 @@ function major_version(version) {
 
 module.exports = () => ({
     start() {
-        state = BdApi.Data.load(plugin_name, save_key)
-        if (state === undefined || state.version === undefined || major_version(state.version) !== major_version(plugin_version)) {
-            state = {
-                version: plugin_version,
-                saved_ms: 0,
-                last_hour_notice: 0
-            }
-            BdApi.Data.save(plugin_name, save_key, state)
-        }
+        state = new State();
         window = BdApi.findModuleByProps("isFocused", "isElementFullScreen");
         create_interval()
 
@@ -220,7 +252,6 @@ module.exports = () => ({
                 create_interval();
             } else {
                 state.saved_ms = state.saved_ms + Date.now() - start_date;
-                BdApi.Data.save(plugin_name, save_key, state)
                 stop_interval();
             }
 
