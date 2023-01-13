@@ -67,6 +67,7 @@ let saved_ms = 0;
 let start_date = Date.now();
 let last_state;
 let interval_active = 0;
+let last_hour_notice = 0;
 
 function number_to_fixed(number, digits) {
     if (number < 0) {
@@ -80,6 +81,64 @@ function number_to_fixed(number, digits) {
     return s;
 }
 
+const notices = [
+    "Go touch a grass! {hour} is enough of procrastination.",
+    "Kdyby jsi místo toho {hour}-hodin kodil tak by z tebe nebyl prodavač v lídlu.",
+    // Maybe stolen from chat gpt maybe not who knows
+    "Mohl jsi využít ten čas k tomu, abys se stal mistrem nové dovednosti, místo toho jsi ale volil pasivně koukat na obrazovku. {hour} je dost.",
+    "Ty {hour} hodiny už se ti nikdy nevrátí, ale alespoň můžeš říct, že jsi si přečetl všechny zprávy na discordu.",
+    "Proč plýtvat svým cenným časem na Discordu, když bys mohl vytvářet svůj vlastní příběh? Za {hour} hodin bys mohl dokončit knihu, která by se stala tvým životem.",
+    "Mohl jsi v tom čase dosáhnout tolik, místo toho jsi ale volil být divákem. {hour} hodin :( .",
+    "Mohl jsi využít ten čas k tomu, abys změnil svět, místo toho jsi ale volil být zábavně rozptýlen na celé {hour} hodiny.",
+    "Mohl jsi využít ten čas k tomu, abys udělal skutečné spojení s lidmi, místo toho jsi ale volil skrývat se {hour} hodin za obrazovkou.",
+    "Plýtváš svým časem a energií na zbytečné konverzace na chatovací platformě, místo abys měl vliv ve skutečném světě.",
+    "Mohl jsi využít ten čas k tomu, abys se něčemu novému a cennému naučil, místo toho jsi ale volil procházet chatovací platformu. WTF už {hour} hodin?",
+    "Necháváš projít drahocenné {hour} hodiny, zatímco se účastníš povrchních konverzací na chatovací platformě.",
+    "Všechny {hour} hodiny, který trávíš chatováním na platformě, by mohl být využit k rozvoji naplňujícího koníčku nebo k pronásledování své vášně.",
+    "Mohl jsi udělat skutečný rozdíl ve světě, místo toho jsi ale plýtváš svým časem na chatovací platformě."
+];
+
+
+function yes_toast(count) {
+    const closeFunction = BdApi.showNotice("Ano" + "!".repeat(count), {
+        type: "success",
+        timeout: 2000 * Math.log(count * 10),
+        buttons: [
+            {
+                label: "Ne!",
+                onClick: () => {
+                    closeFunction();
+                    yes_toast(count + 1);
+                }
+            }
+        ]
+    });
+}
+
+function show_notice(hour) {
+    let notice = notices[Math.floor(Math.random() * notices.length)];
+    notice = notice.replaceAll('{hour}', hour);
+    const closeFunction = BdApi.showNotice(notice, {
+        type: "info",
+        buttons: [
+            {
+                label: "Vypnout upozornění",
+                onClick: () => {
+                    for (let i = 0; i < 20; i++) {
+                        BdApi.showToast("Lol ne :D", {type: "error"});
+                    }
+                }
+            },
+            {
+                label: "Ne!",
+                onClick: () => {
+                    closeFunction();
+                    yes_toast(1)
+                }
+            }
+        ]
+    });
+}
 
 function time_format(time) {
     let date = new Date(time);
@@ -87,6 +146,11 @@ function time_format(time) {
     const sec = date.getSeconds();
     const min = date.getMinutes();
     const hours = Math.floor(time / (1000 * 60 * 60));
+
+    if (hours !== last_hour_notice) {
+        last_hour_notice = hours;
+        show_notice(hours);
+    }
 
     let string = "";
     if (hours !== 0) string += hours + "h ";
