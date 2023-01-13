@@ -5,6 +5,10 @@
  * @version 1.33.7
  */
 
+const plugin_name = "reality_check";
+const plugin_version = "1.33.7";
+const save_key = "saved_state";
+
 // ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 // ⠀⠀⣼⡟⡀⠀⠀⠀⠀⠁⡴⠋⠉⠉⠙⡧⡄⣆⠀⠀⠀⠀⠀⣠⣯⡇⠀⢀⣴⡶⣿⢍⣄⢄⡀⠀⠀⠀⣶⡆⠀⠀⢀⣤⡖⡀⠀⠀⠀⠀
 // ⠀⠈⣿⡿⠿⣿⣷⣆⠀⣟⣏⣀⡀⣀⣠⣇⣷⢻⡆⠀⠀⠀⡼⣿⠋⣀⣦⡋⠯⠉⠀⠁⠃⠷⣽⠀⠀⠀⣿⡇⡠⡿⠉⠁⠀⠀⠀⠀⠀⠀
@@ -63,11 +67,12 @@
 let window;
 let listener;
 let interval;
-let saved_ms = 0;
 let start_date = Date.now();
 let last_state;
 let interval_active = 0;
-let last_hour_notice = 0;
+let last_state_save = Date.now();
+
+let state = {}
 
 function number_to_fixed(number, digits) {
     if (number < 0) {
@@ -147,8 +152,10 @@ function time_format(time) {
     const min = date.getMinutes();
     const hours = Math.floor(time / (1000 * 60 * 60));
 
-    if (hours !== last_hour_notice) {
-        last_hour_notice = hours;
+    if (hours !== state.last_hour_notice) {
+        state.last_hour_notice = hours;
+        state.last_hour_notice = hours;
+        BdApi.Data.save(plugin_name, save_key, state)
         show_notice(hours);
     }
 
@@ -160,10 +167,15 @@ function time_format(time) {
 }
 
 function print_time() {
-    let current_time_in_ms = Date.now() - start_date + saved_ms;
+    let current_time_in_ms = Date.now() - start_date + state.saved_ms;
     const text = document.getElementsByClassName("placeholder-1rCBhr slateTextArea-27tjG0 fontSize16Padding-XoMpjI")[0];
     if (text !== undefined) {
         text.innerHTML = (time_format(current_time_in_ms));
+    }
+    if (last_state_save + (1000 * 60) < Date.now()) {
+        last_state_save = Date.now();
+        state.saved_ms = current_time_in_ms;
+        BdApi.Data.save(plugin_name, save_key, state)
     }
 }
 
@@ -181,8 +193,21 @@ function stop_interval() {
     }
 }
 
+function major_version(version) {
+    return version.split('.')[0];
+}
+
 module.exports = () => ({
     start() {
+        state = BdApi.Data.load(plugin_name, save_key)
+        if (state === undefined || state.version === undefined || major_version(state.version) !== major_version(plugin_version)) {
+            state = {
+                version: plugin_version,
+                saved_ms: 0,
+                last_hour_notice: 0
+            }
+            BdApi.Data.save(plugin_name, save_key, state)
+        }
         window = BdApi.findModuleByProps("isFocused", "isElementFullScreen");
         create_interval()
 
@@ -194,7 +219,8 @@ module.exports = () => ({
                 start_date = Date.now();
                 create_interval();
             } else {
-                saved_ms = saved_ms + Date.now() - start_date;
+                state.saved_ms = state.saved_ms + Date.now() - start_date;
+                BdApi.Data.save(plugin_name, save_key, state)
                 stop_interval();
             }
 
