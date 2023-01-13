@@ -125,6 +125,7 @@ module.exports = () => ({
         };
         window.addChangeListener(listener);
         stop_interval();
+        listener();
     },
     stop() {
         window.removeChangeListener(listener);
