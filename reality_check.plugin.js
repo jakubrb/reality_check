@@ -60,46 +60,45 @@
 // ⠀⠘⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀
 // ⠀⠀⠈⢿⣿⣿⣿⣿⣿⣿⣿⣿⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠛⠛⠛⠁⡇⠟⢿⣿⣿⣿⣿⣿⣿⣿⣧⡀⠀⠀
 
-var window;
-var listener;
-var interval;
-var saved_ms = 0;
-var start_date = Date.now();
-var last_state;
-var interval_active = 0;
+let window;
+let listener;
+let interval;
+let saved_ms = 0;
+let start_date = Date.now();
+let last_state;
+let interval_active = 0;
 
 function time_format(time) {
-    ms = time % 1000;
+    const ms = time % 1000;
     time = (time - ms) / 1000;
-    sec = time % 60;
+    const sec = time % 60;
     time = (time - sec) / 60;
-    min = time % 60;
-    hours = (time - min) / 60;
-    string = "";
-    if (hours != 0) string += hours + "h ";
-    if (min != 0) string += min + "m ";
-    if (sec != 0) string += sec + "s ";
+    const min = time % 60;
+    const hours = (time - min) / 60;
+    let string = "";
+    if (hours !== 0) string += hours + "h ";
+    if (min !== 0) string += min + "m ";
+    if (sec !== 0) string += sec + "s ";
     return string + ms + "ms";
-
 }
 
 function print_time() {
-    current_time_in_ms = Date.now() - start_date + saved_ms;
+    let current_time_in_ms = Date.now() - start_date + saved_ms;
     const text = document.getElementsByClassName("placeholder-1rCBhr slateTextArea-27tjG0 fontSize16Padding-XoMpjI")[0];
-    if (text != undefined) {
+    if (text !== undefined) {
         text.innerHTML = (time_format(current_time_in_ms));
     }
 }
 
 function create_interval() {
-    if (interval_active == 0) {
+    if (interval_active === 0) {
         interval = setInterval(print_time, 101);
         interval_active = 1;
     }
 }
 
 function stop_interval() {
-    if (interval_active == 1) {
+    if (interval_active === 1) {
         clearInterval(interval);
         interval_active = 0;
     }
@@ -111,8 +110,8 @@ module.exports = () => ({
         create_interval()
 
         listener = () => {
-            focused = window.isFocused();
-            if (focused == last_state) return;
+            let focused = window.isFocused();
+            if (focused === last_state) return;
             last_state = focused;
             if (focused) {
                 start_date = Date.now();
