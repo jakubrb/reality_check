@@ -93,7 +93,7 @@ function print_time() {
 
 function create_interval() {
     if (interval_active == 0) {
-        interval = setInterval(print_time, 100);
+        interval = setInterval(print_time, 101);
         interval_active = 1;
     }
 }
