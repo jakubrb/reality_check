@@ -3,4 +3,4 @@ betterdiscord plugin, shows you your spent time in the current session on discor
 
 # honorable mentions
 [@dev-null-undefined](https://github.com/dev-null-undefined)
-[@stepech](https://github.com/https://github.com/stepech)
+[@stepech](https://github.com/stepech)
