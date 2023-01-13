@@ -68,18 +68,31 @@ let start_date = Date.now();
 let last_state;
 let interval_active = 0;
 
+function number_to_fixed(number, digits) {
+    if (number < 0) {
+        return '-' + number_to_fixed(-number, digits);
+    }
+    // pad with zeros
+    let s = number.toString();
+    while (s.length < digits) {
+        s = '0' + s;
+    }
+    return s;
+}
+
+
 function time_format(time) {
-    const ms = time % 1000;
-    time = (time - ms) / 1000;
-    const sec = time % 60;
-    time = (time - sec) / 60;
-    const min = time % 60;
-    const hours = (time - min) / 60;
+    let date = new Date(time);
+    const ms = date.getMilliseconds();
+    const sec = date.getSeconds();
+    const min = date.getMinutes();
+    const hours = Math.floor(time / (1000 * 60 * 60));
+
     let string = "";
     if (hours !== 0) string += hours + "h ";
-    if (min !== 0) string += min + "m ";
-    if (sec !== 0) string += sec + "s ";
-    return string + ms + "ms";
+    if (min !== 0) string += (hours !== 0 ? number_to_fixed(min, 2) : min) + "m ";
+    if (sec !== 0) string += (min !== 0 ? number_to_fixed(sec, 2) : sec) + "s ";
+    return string + number_to_fixed(ms, 3) + "ms";
 }
 
 function print_time() {
