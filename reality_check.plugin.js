@@ -206,9 +206,9 @@ function time_format(time) {
     }
 
     let string = "";
-    if (hours !== 0) string += hours + "h ";
-    if (min !== 0) string += (hours !== 0 ? number_to_fixed(min, 2) : min) + "m ";
-    if (sec !== 0) string += (min !== 0 ? number_to_fixed(sec, 2) : sec) + "s ";
+    if (time >= 1000 * 60 * 60) string += hours + "h ";
+    if (time >= 1000 * 60) string += number_to_fixed(min, 2) + "m ";
+    if (time >= 1000) string += number_to_fixed(sec, 2) + "s ";
     return string + number_to_fixed(ms, 3) + "ms";
 }
 
