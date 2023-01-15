@@ -69,8 +69,6 @@ let listener;
 let interval;
 let last_state;
 let interval_active = 0;
-let start_date = Date.now();
-let last_state_save = start_date;
 
 let config = {
     SAVE_INTERVAL: 1000 * 60, // 1 minute
@@ -81,6 +79,9 @@ config.SAVE_INTERVAL_THRESHOLD = config.SAVE_INTERVAL * 2;
 class State {
     constructor() {
         this._state = this._load();
+
+        this._start_date = Date.now();
+        this._last_state_save = this._start_date;
     }
 
     _load() {
@@ -98,6 +99,34 @@ class State {
 
     _save() {
         BdApi.Data.save(plugin_name, save_key, this._state)
+    }
+
+    update_state(forceSave = false) {
+        const now = Date.now();
+        const delta = now - this._start_date;
+        const delta_from_save = now - this._last_state_save;
+
+        if (delta_from_save > config.SAVE_INTERVAL || forceSave) {
+            this._last_state_save = now;
+            this._start_date = now;
+            if (now - this._last_state_save < config.SAVE_INTERVAL_THRESHOLD) {
+                // do not save the time, just reset the start date since the has been manipulated by more than the threshold
+                // this is to prevent the time from being saved when the user is changing the time manually or many other edge cases
+                this.saved_ms = this.saved_ms + delta;
+            } else {
+                BdApi.showToast(`[${plugin_name}:${plugin_version}] The time has been changed by more than ${config.SAVE_INTERVAL_THRESHOLD}ms (${Date.now() - last_state_save} ms), not saving the time.`, {
+                    type: "error",
+                    timeout: 10000
+                });
+            }
+            return this.saved_ms;
+        }
+        return this.saved_ms + delta;
+    }
+
+    set start_date(value) {
+        this._start_date = value;
+        this._last_state_save = value;
     }
 
     get saved_ms() {
@@ -213,27 +242,11 @@ function time_format(time) {
 }
 
 function print_time() {
-    const now = Date.now();
+    const current_time_in_ms = state.update_state();
 
-    let current_time_in_ms = now - start_date + state.saved_ms;
     const text = document.getElementsByClassName("placeholder-1rCBhr slateTextArea-27tjG0 fontSize16Padding-XoMpjI")[0];
     if (text !== undefined) {
         text.innerHTML = (time_format(current_time_in_ms));
-    }
-
-    if (now - last_state_save > config.SAVE_INTERVAL) {
-        last_state_save = now;
-        start_date = now;
-        if (now - last_state_save < config.SAVE_INTERVAL_THRESHOLD) {
-            // do not save the time, just reset the start date since the has been manipulated by more than the threshold
-            // this is to prevent the time from being saved when the user is changing the time manually or many other edge cases
-            state.saved_ms = current_time_in_ms;
-        } else {
-            BdApi.showToast(`[${plugin_name}:${plugin_version}] The time has been changed by more than ${config.SAVE_INTERVAL_THRESHOLD}ms (${Date.now() - last_state_save} ms), not saving the time.`, {
-                type: "error",
-                timeout: 10000
-            });
-        }
     }
 }
 
@@ -266,19 +279,10 @@ module.exports = () => ({
             if (focused === last_state) return;
             last_state = focused;
             if (focused) {
-                start_date = Date.now();
+                state.start_date = Date.now();
                 create_interval();
             } else {
-                if (Date.now() - last_state_save < config.SAVE_INTERVAL_THRESHOLD) {
-                    // do not save the time, just reset the start date since the has been manipulated by more than the threshold
-                    // this is to prevent the time from being saved when the user is changing the time manually or many other edge cases
-                    state.saved_ms = state.saved_ms + Date.now() - start_date;
-                } else {
-                    BdApi.showToast(`[${plugin_name}:${plugin_version}] The time has been changed by more than ${config.SAVE_INTERVAL_THRESHOLD}ms (${Date.now() - last_state_save} ms), not saving the time.`, {
-                        type: "error",
-                        timeout: 10000
-                    });
-                }
+                state.update_state(true);
                 stop_interval();
             }
 
