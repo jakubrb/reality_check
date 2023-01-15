@@ -67,10 +67,15 @@ const save_key = "saved_state";
 let window;
 let listener;
 let interval;
-let start_date = Date.now();
 let last_state;
 let interval_active = 0;
-let last_state_save = Date.now();
+let start_date = Date.now();
+let last_state_save = start_date;
+
+let config = {
+    SAVE_INTERVAL: 1000 * 60, // 1 minute
+}
+config.SAVE_INTERVAL_THRESHOLD = config.SAVE_INTERVAL * 2;
 
 
 class State {
@@ -208,14 +213,27 @@ function time_format(time) {
 }
 
 function print_time() {
-    let current_time_in_ms = Date.now() - start_date + state.saved_ms;
+    const now = Date.now();
+
+    let current_time_in_ms = now - start_date + state.saved_ms;
     const text = document.getElementsByClassName("placeholder-1rCBhr slateTextArea-27tjG0 fontSize16Padding-XoMpjI")[0];
     if (text !== undefined) {
         text.innerHTML = (time_format(current_time_in_ms));
     }
-    if (last_state_save + (1000 * 60) < Date.now()) {
-        last_state_save = Date.now();
-        state.saved_ms = current_time_in_ms;
+
+    if (now - last_state_save > config.SAVE_INTERVAL) {
+        last_state_save = now;
+        start_date = now;
+        if (now - last_state_save < config.SAVE_INTERVAL_THRESHOLD) {
+            // do not save the time, just reset the start date since the has been manipulated by more than the threshold
+            // this is to prevent the time from being saved when the user is changing the time manually or many other edge cases
+            state.saved_ms = current_time_in_ms;
+        } else {
+            BdApi.showToast(`[${plugin_name}:${plugin_version}] The time has been changed by more than ${config.SAVE_INTERVAL_THRESHOLD}ms (${Date.now() - last_state_save} ms), not saving the time.`, {
+                type: "error",
+                timeout: 10000
+            });
+        }
     }
 }
 
@@ -251,7 +269,16 @@ module.exports = () => ({
                 start_date = Date.now();
                 create_interval();
             } else {
-                state.saved_ms = state.saved_ms + Date.now() - start_date;
+                if (Date.now() - last_state_save < config.SAVE_INTERVAL_THRESHOLD) {
+                    // do not save the time, just reset the start date since the has been manipulated by more than the threshold
+                    // this is to prevent the time from being saved when the user is changing the time manually or many other edge cases
+                    state.saved_ms = state.saved_ms + Date.now() - start_date;
+                } else {
+                    BdApi.showToast(`[${plugin_name}:${plugin_version}] The time has been changed by more than ${config.SAVE_INTERVAL_THRESHOLD}ms (${Date.now() - last_state_save} ms), not saving the time.`, {
+                        type: "error",
+                        timeout: 10000
+                    });
+                }
                 stop_interval();
             }
 
